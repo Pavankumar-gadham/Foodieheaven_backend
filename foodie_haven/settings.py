@@ -24,12 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-vg=j+8-ymwx-(_@g3z_(_409xvh1@1e50k+pqo(u$)%_(&9$od"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "your-local-dev-secret")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Toggle DEBUG based on environment
+DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
 
 # Application definition
@@ -82,13 +82,22 @@ WSGI_APPLICATION = "foodie_haven.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Database Configuration
+if DEBUG:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
-
+else:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL"),
+            conn_max_age=600,
+            ssl_require=True,
+        )
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -200,5 +209,4 @@ RAZOR_KEY_SECRET = "mxBRj2qo44WTMT69VuhWjJsz"
 USE_TZ = True
 TIME_ZONE = 'Asia/Kolkata'
 
-BASE_DIR = Path(__file__).resolve().parent.parent
 
