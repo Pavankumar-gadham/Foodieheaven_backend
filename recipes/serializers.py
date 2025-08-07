@@ -23,7 +23,7 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class RecipeSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(required=False)
+    image = serializers.CharField(required=False)
     created_by = serializers.ReadOnlyField(source='created_by.username')
     category_name = serializers.ReadOnlyField(source='category.name') 
     process = serializers.CharField(allow_blank=True, required=False, default="")

@@ -10,7 +10,7 @@ class Category(models.Model):
     
 class Recipe(models.Model):
     title = models.CharField(max_length=100, db_index=True)
-    image = models.ImageField(upload_to='recipes/', null=True, blank=True)
+    image = models.URLField(max_length=500, null=True, blank=True) 
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     preparation_time = models.PositiveIntegerField(null=True, blank=True, help_text="Time in minutes to prepare the ingredients")
