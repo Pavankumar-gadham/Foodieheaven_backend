@@ -18,6 +18,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.core.management import call_command
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import user_passes_test
+from django.db.models import Q 
 import io
 
 
@@ -59,23 +60,82 @@ class MyRecipeListView(generics.ListAPIView):
         return Recipe.objects.filter(created_by = self.request.user).select_related('category', 'created_by')
 
 # Recipe List/Create API — User-specific listing + optional category filter + Redis cache
+# class RecipeListCreateView(generics.ListCreateAPIView):
+#     serializer_class = RecipeSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+#     pagination_class = RecipePagination
+#     filter_backends = [filters.SearchFilter]
+#     search_fields = ['title']
+
+#     def get_queryset(self):
+#         """
+#         Returns only recipes created by current logged-in user.
+#         Optionally filters by category via ?category=<id>
+#         """
+#         queryset = Recipe.objects.all().select_related('category', 'created_by')
+#         category_id = self.request.query_params.get('category')
+#         if category_id:
+#             queryset = queryset.filter(category_id=category_id)
+#         return queryset
+
+#     def get(self, request, *args, **kwargs):
+#         category_id = request.query_params.get('category')
+#         user_id = request.user.id if request.user.is_authenticated else 'anonymous'
+#         limit = request.query_params.get('limit', 10)
+#         offset = request.query_params.get('offset', 0)
+#         search_query = request.query_params.get('search', '').strip() or 'none'
+
+#         cache_key = f'recipe_list_{user_id}_{category_id or "all"}_limit_{limit}_offset_{offset}_search_{search_query}'
+
+#         try:
+#             cached_data = cache.get(cache_key)
+#             if cached_data:
+#                 print(f"✅ Recipes fetched from Redis cache: {cache_key}", flush=True)
+#                 return Response(cached_data)
+#         except Exception as e:
+#             print(f"⚠️ Cache unavailable on GET: {e}", flush=True)
+
+#         response = super().get(request, *args, **kwargs)
+
+#         try:
+#             cache.set(cache_key, response.data, timeout=300)
+#             print(f"✅ Recipes fetched from DB and cached: {cache_key}", flush=True)
+#         except Exception as e:
+#             print(f"⚠️ Failed to cache on SET: {e}", flush=True)
+
+#         return response
+
+#     def perform_create(self, serializer):
+#         recipe = serializer.save(created_by=self.request.user)
+#         recipient_email = self.request.user.email  # grab email of recipe creator
+#         notify_new_recipe.delay(recipe.title, recipe.description, recipient_email)
+#         cache.delete_pattern(f'recipe_list_{self.request.user.id}_*')
+#         print(f"🆕 Cache cleared after recipe creation by {self.request.user.username}.", flush=True)
+
 class RecipeListCreateView(generics.ListCreateAPIView):
     serializer_class = RecipeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # changed to allow unauthenticated GET
     pagination_class = RecipePagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['title']
 
     def get_queryset(self):
         """
-        Returns only recipes created by current logged-in user.
-        Optionally filters by category via ?category=<id>
+        - Authenticated users: see their own recipes (optionally filtered by category)
+        - Unauthenticated users: see only public recipes
         """
-        queryset = Recipe.objects.all().select_related('category', 'created_by')
+        user = self.request.user
         category_id = self.request.query_params.get('category')
+
+        if user.is_authenticated:
+            queryset = Recipe.objects.filter(Q(created_by=user))
+        else:
+            queryset = Recipe.objects.filter(is_public=True)
+
         if category_id:
             queryset = queryset.filter(category_id=category_id)
-        return queryset
+
+        return queryset.select_related('category', 'created_by')
 
     def get(self, request, *args, **kwargs):
         category_id = request.query_params.get('category')
