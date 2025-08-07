@@ -4,11 +4,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from .views import (
     CartItemDeleteView, CategoryListView, ClearCartView, PurchasedRecipesView, RegisterView, RecipeDetailView, RecipeListCreateView, CustomTokenObtainPairView, MyRecipeListView, SubscriptionCreateView,
-    CartListCreateView, OrderCreateView, create_payment_order, has_purchased_recipe
+    CartListCreateView, OrderCreateView, create_payment_order, has_purchased_recipe, load_data_view
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
+    path('load-data/', load_data_view), 
     path('register/', RegisterView.as_view()),
     path('login/', CustomTokenObtainPairView.as_view()),
     path('token/refresh', TokenRefreshView.as_view()),

@@ -15,6 +15,10 @@ from rest_framework.permissions import IsAuthenticated
 from .tasks import notify_new_recipe, send_subscription_welcome_email, send_purchase_email
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.core.management import call_command
+from django.http import HttpResponse, JsonResponse
+from django.contrib.auth.decorators import user_passes_test
+import io
 
 
 # User registration view
@@ -266,3 +270,12 @@ def create_payment_order(request):
 def cart_count(request):
     count = request.user.cart_items.count()
     return Response({'count': count})
+
+def load_data_view(request):
+    if request.method == 'GET':
+        out = io.StringIO()
+        try:
+            call_command('loaddata', 'full_data.json', stdout=out)
+            return JsonResponse({'status': 'success', 'output': out.getvalue()})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
