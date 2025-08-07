@@ -124,6 +124,9 @@ class RecipeListCreateView(generics.ListCreateAPIView):
         - Authenticated users: see their own recipes + public recipes
         - Unauthenticated users: see only public recipes
         """
+        print(f"🔍 User Authenticated: {self.request.user.is_authenticated}")
+        print(f"🔍 User: {self.request.user}")
+        
         user = self.request.user
         category_id = self.request.query_params.get('category')
 
@@ -136,6 +139,8 @@ class RecipeListCreateView(generics.ListCreateAPIView):
 
         if category_id:
             queryset = queryset.filter(category_id=category_id)
+            
+        print(f"User: {user} | Authenticated: {user.is_authenticated} | Recipes Count: {queryset.count()}")
 
         return queryset.select_related('category', 'created_by')
 
